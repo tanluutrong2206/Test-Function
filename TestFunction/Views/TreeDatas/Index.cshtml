@@ -1,0 +1,234 @@
+﻿@model IEnumerable<TestFunction.Models.TreeData>
+
+@{
+    ViewData["Title"] = "Index";
+}
+<style>
+    #tableWrapper {
+        width: 100%;
+        height: 600px;
+        overflow: hidden;
+        position: relative;
+    }
+</style>
+<h1>Index</h1>
+<link href="~/jquery.fancytree/dist/skin-win8/ui.fancytree.min.css" rel="stylesheet" />
+<p>
+    <a asp-action="Create">Create New asdasasd</a>
+</p>
+@*<table class="table">
+        <thead>
+            <tr>
+                <th>
+                    @Html.DisplayNameFor(model => model.Title)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Author)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Year)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.ParentId)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Price)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.Quantity)
+                </th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Title)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Author)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Year)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.ParentId)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Price)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Quantity)
+                    </td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                        <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                        <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>*@
+
+<p>Load from Ajax data:</p>
+@*<div id="tree2" data-source="ajax" class="sampletree">
+    </div>*@
+
+<div id="tableWrapper">
+    <table id="treetable">
+        <!-- <caption>Loading&hellip;</caption> -->
+        @*<colgroup>
+            <col width="80" />
+            <col width="*" />
+            <col width="100" />
+            <col width="90" />
+            <col width="80" />
+            <col width="80" />
+        </colgroup>*@
+        <thead>
+            <tr>
+                <th class="parent-path">Id</th>
+                <th class="parent-path">Title</th>
+                <th class="parent-path">Author</th>
+                <th>Year</th>
+                <th>Quantity</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Define a row template for all invariant markup: -->
+            <tr>
+                <td class="alignCenter"></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_FancyTreeScriptPartial");
+    }
+
+    <script>
+        $(function () {
+            $("#treetable").fancytree({
+                extensions: ["table", "fixed", "edit"],
+                icon: false,
+                titlesTabbable: true, // Add all node titles to TAB chain
+                // fixed cols and rows
+                fixed: {
+                    fixCols: 2,    // Fix leftmost n columns
+                    //            fixColWidths: [16, 50, 200],
+                    fixRows: true  // Fix topmost n rows (true: whole <thead>)
+                },
+                table: {
+                    indentation: 20,       // indent 20px per node level
+                    nodeColumnIdx: 1,      // render the node title into the 2nd column
+                },
+                source: {
+                    url: "api/TreeDatas"
+                },
+                tooltip: function (event, data) {
+                    return data.node.data.name;
+                },
+                lazyLoad: function (event, data) {
+                    var node = data.node;
+                    console.log(node);
+                    // Issue an Ajax request to load child nodes
+                    data.result = {
+                        url: "api/TreeDatas/" + node.data.id
+                    }
+                },
+                // column for table
+                renderColumns: function (event, data) {
+                    var node = data.node,
+                        $tdList = $(node.tr).find(">td");
+                     var row = $(node.tr);
+                    // (index #0 is rendered by fancytree by adding the checkbox)
+                    $tdList.eq(0).text(node.getIndexHier());  //.addClass("alignRight");
+                    // (index #2 is rendered by fancytree)
+                    $tdList.eq(2).text(node.data.author);
+                    $tdList.eq(3).text(node.data.year);
+                    if (!node.isFolder()) {
+                        $tdList.eq(4).html(`<input name="quantity" type="number" step="0.001" value="${node.data.quantity}" />`);
+                        $tdList.eq(5).html(`<input name="price" type="number" step="0.001" value="${node.data.price}" />`);
+                        row.on("blur", "input", function (e) {
+                            switch ($(this).attr("name")) {
+                                case "quantity": {
+                                    node.data.quantity = $(this).val();
+                                    break;
+                                }
+                                case "price": {
+                                    node.data.price = $(this).val();
+                                    break;
+                                }
+                                default:
+                            }
+                            console.log(node.data);
+                        });
+                    }
+                },
+                // collapse for fixed extension
+                collapse: function (event, data) {
+                    data.node.discardMarkup(false);
+                },
+                //postProcess: function (event, data) {
+                //    data.result = convertData(data.response);   // convert from flat data
+                //},
+                // edit extension
+                edit: {
+                    adjustWidthOfs: 10,     // When switching to edit mode, the title is replace with an input control. The input width is calculated from the current title text width plus this increment.
+                    triggerStart: ["f2", "dblclick", "clickActive"],     // press F2, double click or click again into an already active node title to edit
+
+                }
+            });
+        });
+
+        function convertData(childList) {
+            console.log(childList);
+            var parent,
+                nodeMap = {};
+
+            // Pass 1: store all tasks in reference map
+            $.each(childList, function (i, c) {
+                nodeMap[c.id] = c;
+            });
+            // Pass 2: adjust fields and fix child structure
+            childList = $.map(childList, function (c) {
+                // Rename 'key' to 'id'
+                c.key = c.id;
+                delete c.id;
+
+                // Check if c is a child node
+                if (c.parentId) {
+                    // add c to `children` array of parent node
+                    parent = nodeMap[c.parentId];
+                    if (parent.children) {
+                        parent.children.push(c);
+                    } else {
+                        parent.children = [c];
+                    }
+                    return null;  // Remove c from childList
+                }
+                return c;  // Keep top-level nodes
+            });
+            // Pass 3: sort children by 'id'
+            $.each(childList, function (i, c) {
+                if (c.children && c.children.length > 1) {
+                    c.children.sort(function (a, b) {
+                        return ((a.id < b.id) ? -1 : ((a.id > b.id) ? 1 : 0));
+                    });
+                }
+            });
+            return childList;
+        }
+    </script>
+}

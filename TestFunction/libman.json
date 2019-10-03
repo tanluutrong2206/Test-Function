@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "defaultProvider": "cdnjs",
+  "libraries": [
+    {
+      "library": "jqueryui@1.12.1",
+      "destination": "wwwroot/jqueryui/",
+      "files": [
+        "jquery-ui.min.js"
+      ]
+    },
+    {
+      "provider": "unpkg",
+      "library": "jquery.fancytree@2.32.0",
+      "destination": "wwwroot/jquery.fancytree/"
+    }
+  ]
+}
