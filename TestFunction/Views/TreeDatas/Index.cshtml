@@ -16,77 +16,10 @@
 <p>
     <a asp-action="Create">Create New asdasasd</a>
 </p>
-@*<table class="table">
-        <thead>
-            <tr>
-                <th>
-                    @Html.DisplayNameFor(model => model.Title)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.Author)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.Year)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.ParentId)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.Price)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.Quantity)
-                </th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in Model)
-            {
-                <tr>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.Title)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.Author)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.Year)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.ParentId)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.Price)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.Quantity)
-                    </td>
-                    <td>
-                        <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                        <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                        <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>*@
-
+<button id="submitData" class="btn btn-outline-primary">Submit data</button>
 <p>Load from Ajax data:</p>
-@*<div id="tree2" data-source="ajax" class="sampletree">
-    </div>*@
-
 <div id="tableWrapper">
     <table id="treetable">
-        <!-- <caption>Loading&hellip;</caption> -->
-        @*<colgroup>
-            <col width="80" />
-            <col width="*" />
-            <col width="100" />
-            <col width="90" />
-            <col width="80" />
-            <col width="80" />
-        </colgroup>*@
         <thead>
             <tr>
                 <th class="parent-path">Id</th>
@@ -120,7 +53,7 @@
     <script>
         $(function () {
             $("#treetable").fancytree({
-                extensions: ["table", "fixed", "edit"],
+                extensions: ["table", "fixed", "edit", "gridnav"],
                 icon: false,
                 titlesTabbable: true, // Add all node titles to TAB chain
                 // fixed cols and rows
@@ -128,6 +61,10 @@
                     fixCols: 2,    // Fix leftmost n columns
                     //            fixColWidths: [16, 50, 200],
                     fixRows: true  // Fix topmost n rows (true: whole <thead>)
+                },
+                gridnav: {
+                    autofocusInput: false,
+                    handleCursorKeys: true,
                 },
                 table: {
                     indentation: 20,       // indent 20px per node level
@@ -144,35 +81,53 @@
                     console.log(node);
                     // Issue an Ajax request to load child nodes
                     data.result = {
-                        url: "api/TreeDatas/" + node.data.id
+                        url: "api/TreeDatas/" + node.key
                     }
                 },
                 // column for table
                 renderColumns: function (event, data) {
                     var node = data.node,
                         $tdList = $(node.tr).find(">td");
-                     var row = $(node.tr);
+                    var row = $(node.tr);
                     // (index #0 is rendered by fancytree by adding the checkbox)
-                    $tdList.eq(0).text(node.getIndexHier());  //.addClass("alignRight");
+                     $tdList.eq(0).text(node.getIndexHier());  //.addClass("alignRight");
                     // (index #2 is rendered by fancytree)
-                    $tdList.eq(2).text(node.data.author);
+                    $tdList.eq(2).html(`<input type="hidden" name="id" value="${node.getIndexHier()}"<span>${node.data.author}</span>`);  //.addClass("alignRight");
+                    // $tdList.eq(2).text(node.data.author);
                     $tdList.eq(3).text(node.data.year);
                     if (!node.isFolder()) {
-                        $tdList.eq(4).html(`<input name="quantity" type="number" step="0.001" value="${node.data.quantity}" />`);
+                        $tdList.eq(4).html(`<input name="quantity" type="number" value="${node.data.quantity}" />`);
                         $tdList.eq(5).html(`<input name="price" type="number" step="0.001" value="${node.data.price}" />`);
                         row.on("blur", "input", function (e) {
                             switch ($(this).attr("name")) {
                                 case "quantity": {
-                                    node.data.quantity = $(this).val();
+                                    if (node.data.quantity == $(this).val()) {
+                                        $(this).removeClass("border border-success border-warning modified");
+                                        break;
+                                    }
+                                    if (node.data.quantity) {
+                                        $(this).addClass("border border-warning modified");
+                                    } else {
+                                        $(this).addClass("border border-success modified");
+                                    }
+                                    //node.data.quantity = $(this).val();
                                     break;
                                 }
                                 case "price": {
-                                    node.data.price = $(this).val();
+                                    if (node.data.price == $(this).val()) {
+                                        $(this).removeClass("border border-success border-warning modified");
+                                        break;
+                                    }
+                                    if (node.data.price) {
+                                        $(this).addClass("border border-warning modified");
+                                    } else {
+                                        $(this).addClass("border border-success modified");
+                                    }
+                                    //node.data.price = $(this).val(); 
                                     break;
                                 }
                                 default:
                             }
-                            console.log(node.data);
                         });
                     }
                 },
@@ -180,20 +135,142 @@
                 collapse: function (event, data) {
                     data.node.discardMarkup(false);
                 },
-                //postProcess: function (event, data) {
-                //    data.result = convertData(data.response);   // convert from flat data
-                //},
+                postProcess: function (event, data) {
+                    data.result = convertDataSetKey(data.response);   // convert from flat data
+                },
                 // edit extension
                 edit: {
                     adjustWidthOfs: 10,     // When switching to edit mode, the title is replace with an input control. The input width is calculated from the current title text width plus this increment.
                     triggerStart: ["f2", "dblclick", "clickActive"],     // press F2, double click or click again into an already active node title to edit
 
                 }
-            });
+            })
+                .on("keydown", function (e) {
+                    var cmd = null;
+                    switch ($.ui.fancytree.eventToString(e)) {
+                        case "ctrl+shift+n":
+                        case "meta+shift+n": // mac: cmd+shift+n
+                            cmd = "addChild";
+                            break;
+                        case "ctrl+c":
+                        case "meta+c": // mac
+                            cmd = "copy";
+                            break;
+                        case "ctrl+v":
+                        case "meta+v": // mac
+                            cmd = "paste";
+                            break;
+                        case "ctrl+x":
+                        case "meta+x": // mac
+                            cmd = "cut";
+                            break;
+                        case "ctrl+n":
+                        case "meta+n": // mac
+                            cmd = "addSibling";
+                            break;
+                        case "del":
+                        case "meta+backspace": // mac
+                            cmd = "remove";
+                            break;
+                        // case "f2":  // already triggered by ext-edit pluging
+                        // 	cmd = "rename";
+                        // 	break;
+                        case "ctrl+up":
+                        case "ctrl+shift+up": // mac
+                            cmd = "moveUp";
+                            break;
+                        case "ctrl+down":
+                        case "ctrl+shift+down": // mac
+                            cmd = "moveDown";
+                            break;
+                        case "ctrl+right":
+                        case "ctrl+shift+right": // mac
+                            cmd = "indent";
+                            break;
+                        case "ctrl+left":
+                        case "ctrl+shift+left": // mac
+                            cmd = "outdent";
+                    }
+                    if (cmd) {
+                        $(this).trigger("nodeCommand", { cmd: cmd });
+                        return false;
+                    }
+                });
+
         });
 
+        $('#submitData').on('click', function () {
+                var tree = $("#treetable").fancytree("getTree");
+            var lstId = [], lstData = [];
+            $.each($('#tableWrapper .modified'), function (index, item) {
+                var id = $(item).closest('tr').find('input[name="id"]').val();
+                //Get the node
+                if (lstId.indexOf(id) < 0) {
+                    lstId.push(id);
+                }
+                var node = tree.getNodeByKey(id);
+                //Get the custom data attribute associated to that node
+                var data = node.data;
+                //data is an object so, data.content will give you the value of the attribute
+                switch ($(item).attr("name")) {
+                    case "quantity": {
+                        data.quantity = parseInt($(item).val());
+                        break;
+                    }
+                    case "price": {
+                        data.price = parseFloat($(item).val());
+                        break;
+                    }
+                    default:
+                }
+            });
+            if (lstId.length > 0) {
+                // Get the DynaTree object instance
+                $.each(lstId, function (index, id) {
+                    var node = tree.getNodeByKey(id);
+                    // Get the custom data attribute associated to that node
+                    var data = node.data;
+                    // set id to node
+                    data.id = id;
+                    // data is an object so, data.content will give you the value of the attribute
+                    lstData.push(data);
+                });
+                // push lstData to server
+                $.ajax({
+                    type: "PUT",
+                    url: "api/TreeDatas",
+                    headers: { 'Content-Type': 'application/json' },
+                    data: JSON.stringify(lstData),
+                    success: function () {
+                        $.each($('#tableWrapper .modified'), function (index, item) {
+                            $(item).removeClass('border border-success border-warning modified');
+                        });
+                        alert("update success");
+                    },
+                    error: function () {
+                        alert("error");
+                    }
+                });
+            }
+        });
+
+        function convertDataSetKey(childList) {
+            var parent,
+                nodeMap = {};
+
+            // Pass 1: store all tasks in reference map
+            $.each(childList, function (i, c) {
+                nodeMap[c.id] = c;
+            });
+            childList = $.map(childList, function (c) {
+                // Rename 'key' to 'id'
+                c.key = c.id;
+                delete c.id;
+                return c;  // Keep top-level nodes
+            });
+            return childList;
+        }
         function convertData(childList) {
-            console.log(childList);
             var parent,
                 nodeMap = {};
 

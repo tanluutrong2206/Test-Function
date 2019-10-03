@@ -66,6 +66,43 @@ namespace TestFunction.API
 
             return NoContent();
         }
+        
+        // PUT: api/TreeDatas
+        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
+        // more details see https://aka.ms/RazorPagesCRUD.
+        [HttpPut]
+        public async Task<IActionResult> PutTreesData(IList<TreeData> treeData)
+        {
+            foreach (var data in treeData)
+            {
+                _context.Entry(data).State = EntityState.Modified;
+                _context.Entry(data).Property(x => x.Author).IsModified = false;
+                _context.Entry(data).Property(x => x.Title).IsModified = false;
+                _context.Entry(data).Property(x => x.Folder).IsModified = false;
+                _context.Entry(data).Property(x => x.ParentId).IsModified = false;
+                _context.Entry(data).Property(x => x.Id).IsModified = false;
+                _context.Entry(data).Property(x => x.Lazy).IsModified = false;
+                _context.Entry(data).Property(x => x.Year).IsModified = false;
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!TreeDataExists(treeData))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
 
         // POST: api/TreeDatas
         // To protect from overposting attacks, please enable the specific properties you want to bind to, for
@@ -113,5 +150,11 @@ namespace TestFunction.API
         {
             return _context.TreeDatas.Any(e => e.Id == id);
         }
+
+        private bool TreeDataExists(IList<TreeData> treeData)
+        {
+            return _context.TreeDatas.Any(e => treeData.Any(d => e.Id == d.Id));
+        }
+
     }
 }
